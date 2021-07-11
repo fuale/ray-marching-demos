@@ -35,7 +35,10 @@ let fshader = gl.createShader(gl.FRAGMENT_SHADER);
 gl.shaderSource(fshader, fragment);
 gl.compileShader(fshader);
 if (!gl.getShaderParameter(fshader, gl.COMPILE_STATUS)) {
-  throw new Error(gl.getShaderInfoLog(fshader));
+  console.group("Shader compilation error");
+  console.log(gl.getShaderInfoLog(fshader));
+  throw new Error();
+  console.groupEnd();
 }
 
 // Program
@@ -68,15 +71,61 @@ window.addEventListener("mousemove", (e) => {
   ];
 });
 
+// Keys
+let u_fb = gl.getUniformLocation(program, "u_fb");
+let keys = { fb: 4, fb_v: 0, fb_a: 0 };
+
 // Render
+let delta = 0;
+let deltaFlag = true;
+
+window.addEventListener("keydown", (event) => {
+  if (event.code === "Digit1") {
+    deltaFlag = true;
+  }
+
+  if (event.code === "KeyW") {
+    keys.fb_a = -0.005;
+  } else if (event.code === "KeyS") {
+    keys.fb_a = 0.005;
+  }
+});
+
+window.addEventListener("keyup", (event) => {
+  if (event.code === "Digit2") {
+    deltaFlag = false;
+  }
+
+  if (event.code === "KeyW" || event.code === "KeyS") {
+    keys.fb_a = 0;
+  }
+});
+
 function render() {
-  requestAnimationFrame(render);
   gl.clearColor(0.265625, 0.17578125, 0.94921875, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  gl.uniform1f(time, window.performance.now() / 1000);
+  gl.uniform1f(time, delta);
   gl.uniform2fv(u_mouse, mouse);
   gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
+  //Physics
+  keys.fb_v += keys.fb_a;
+  keys.fb_v *= 0.9;
+  keys.fb += keys.fb_v;
+  if (keys.fb > 4) {
+    keys.fb = 4;
+  } else if (keys.fb < 1) {
+    keys.fb = 1;
+  }
+
+  gl.uniform1f(u_fb, keys.fb);
+
+  if (deltaFlag) {
+    delta = window.performance.now() / 900;
+  }
+
+  requestAnimationFrame(render);
 }
 
 render();
